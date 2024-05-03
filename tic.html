@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>TicTacToe</title>
+  </head>
+  <body>
+    <canvas id="tictactoeCanvas" width="600" height="600" style="border:1px solid #000000;">This would normally display a TicTacToe game but your browser does not support HTML Canvas</canvas>
+    <script>
+      let width = 600;
+      let height = 600;
+
+      let boardOffsetX = 100;
+      let boardOffsetY = 150;
+      let boardSize = 400;
+
+      let cellSize = boardSize / 3;
+      let figureSize = cellSize * 2 / 3;
+      let figureOffset = (cellSize - figureSize) / 2;
+
+
+      const Values = {
+        None: Symbol(""),
+        O : Symbol("O"),
+        X : Symbol("X"),
+      }
+      // board starts from top left, goes to top right, then to row below
+      let board = [];
+      for (let i = 0; i < 9; i++) {
+        board[i] = Values.None;
+      }
+      let wins = 0;
+      let losses = 0;
+      let draws = 0;
+
+      // clear screen
+      var canvas = document.getElementById("tictactoeCanvas");
+      var ctx = canvas.getContext("2d");
+
+      function drawBoard() {
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, width, height);
+
+        // draw board
+        ctx.lineWidth = Math.ceil(width / 200);
+        ctx.strokeStyle = "#00888888";
+        ctx.beginPath();
+        ctx.lineWidth = Math.max(1, ctx.lineWidth);
+        ctx.moveTo( boardOffsetX + boardSize / 3, boardOffsetY + 0 );
+        ctx.lineTo( boardOffsetX + boardSize / 3, boardOffsetY + boardSize);
+        ctx.moveTo( boardOffsetX + boardSize * 2 / 3, boardOffsetY + 0 );
+        ctx.lineTo( boardOffsetX + boardSize * 2 / 3, boardOffsetY + boardSize);
+        ctx.moveTo( boardOffsetX + 0, boardOffsetY + boardSize / 3 );
+        ctx.lineTo( boardOffsetX + boardSize, boardOffsetY + boardSize / 3);
+        ctx.moveTo( boardOffsetX + 0, boardOffsetY + boardSize * 2 / 3 );
+        ctx.lineTo( boardOffsetX + boardSize, boardOffsetY + boardSize * 2 / 3);
+        ctx.stroke();
+
+        function drawX(ctx, x, y, size, t) {
+          ctx.lineWidth = t;
+          ctx.strokeStyle = "#88888888";
+          ctx.beginPath();
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + size, y + size);
+          ctx.moveTo(x + size, y);
+          ctx.lineTo(x, y + size);
+          ctx.stroke();
+        }
+
+        function drawO(ctx, x, y, size, t) {
+          ctx.lineWidth = t;
+          ctx.strokeStyle = "#88888888";
+          ctx.beginPath();
+          // ctx.moveTo(x + size/2, y + size/2);
+          ctx.arc(x + size/2, y + size/2, size/2, 0, 2 * Math.PI);
+          ctx.stroke();
+        }
+
+        let thickness = Math.ceil(width / 100);
+        for (let i = 0; i < 9; i++) {
+          let row = Math.trunc(i / 3);
+          let col = Math.trunc(i % 3);
+          let x = col * cellSize + figureOffset + boardOffsetX;
+          let y = row * cellSize + figureOffset + boardOffsetY;
+
+          if (board[i] == Values.X) {
+            drawX(ctx, x, y, figureSize, thickness);
+          } else if (board[i] == Values.O) { 
+            drawO(ctx, x, y, figureSize, thickness);
+          }
+        }
+
+        // draw scores
+        let win_message = "Wins:";
+        let draw_message = "Draws:";
+        let lose_message = "Losses:";
+        ctx.font = "30px sans-serif";
+        ctx.fillStyle = "#00888888";
+        ctx.textAlign = "start";
+        ctx.fillText(win_message, boardOffsetX, boardOffsetY / 4, 200);
+        ctx.fillText(draw_message, boardOffsetX, boardOffsetY / 2, 200);
+        ctx.fillText(lose_message, boardOffsetX, boardOffsetY * 3 / 4, 200);
+        ctx.textAlign = "end";
+        ctx.fillText("" + wins, width - boardOffsetX, boardOffsetY / 4, width - boardOffsetX * 2 - 200);
+        ctx.fillText("" + draws, width - boardOffsetX, boardOffsetY / 2, width - boardOffsetX * 2 - 200);
+        ctx.fillText("" + losses, width - boardOffsetX, boardOffsetY * 3 / 4, width - boardOffsetX * 2 - 200);
+      }
+      drawBoard();
+
+      canvas.addEventListener("click", function(e) {
+        let mouseX = e.offsetX - boardOffsetX;
+        let mouseY = e.offsetY - boardOffsetY;
+        if (mouseX < 0 || mouseY < 0 || mouseX >= boardSize || mouseY >= boardSize) {
+          return;
+        }
+        let cellX = Math.trunc(mouseX / cellSize);
+        let cellY = Math.trunc(mouseY / cellSize);
+        let index = cellX + cellY * 3;
+        if (board[index] == Values.None) {
+          board[index] = Values.O;
+          drawBoard();
+        } 
+      });
+
+    </script>
+  </body>
+</html>
