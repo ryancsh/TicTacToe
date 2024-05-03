@@ -106,6 +106,46 @@
       }
       drawBoard();
 
+      function cell(x, y) {
+        return x + y * 3;
+      }
+
+      function hasWon(player) {
+        // check for full rows
+        nextRow: for (let row = 0; row < 3; row++) {
+          for (let col = 0; col < 3; col++) {
+            if (board[cell(col, row)] != player) {
+              continue nextRow;
+            } 
+          }
+          return true;
+        }
+
+        // check for full cols
+        nextCol: for (let col = 0; col < 3; col++) {
+          for (let row = 0; row < 3; row++) {
+            if (board[cell(col, row)] != player) {
+              continue nextCol;
+            } 
+          }
+          return true;
+        }
+
+        // check for full diagonals
+        function checkDiagonal(arr) {
+          for (let i = 0; i < arr.length; i++) {
+            if (board[arr[i]] != player) {
+              return false;
+            }
+          }
+          return true;
+        }
+
+        let slots1 = [0, cell(1,1), cell(2,2)];
+        let slots2 = [cell(2,0), cell(1,1), cell(0,2)];
+        return checkDiagonal(slots1) || checkDiagonal(slots2);
+      }
+
       canvas.addEventListener("click", function(e) {
         let mouseX = e.offsetX - boardOffsetX;
         let mouseY = e.offsetY - boardOffsetY;
@@ -114,10 +154,14 @@
         }
         let cellX = Math.trunc(mouseX / cellSize);
         let cellY = Math.trunc(mouseY / cellSize);
-        let index = cellX + cellY * 3;
+        let index = cell(cellX, cellY);
         if (board[index] == Values.None) {
           board[index] = Values.O;
           drawBoard();
+
+          if (hasWon(Values.O)) {
+            console.log("won");
+          }
         } 
       });
 
