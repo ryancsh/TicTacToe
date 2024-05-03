@@ -146,6 +146,23 @@
         return checkDiagonal(slots1) || checkDiagonal(slots2);
       }
 
+      function AiChooseCell() {
+        return cell(1,1);
+        /*
+        let win = hasWinningMove(Values.X);
+        if (win != null) {
+          return win;
+        } 
+
+        let lose = hasWinningMove(Values.O);
+        if (lose != null) {
+          return lose;
+        }
+
+        return pickBestMove(Values.X);
+        */
+      }
+
       canvas.addEventListener("click", function(e) {
         let mouseX = e.offsetX - boardOffsetX;
         let mouseY = e.offsetY - boardOffsetY;
@@ -157,11 +174,17 @@
         let index = cell(cellX, cellY);
         if (board[index] == Values.None) {
           board[index] = Values.O;
-          drawBoard();
 
           if (hasWon(Values.O)) {
-            console.log("won");
+            console.log("You Win");
+          } else {
+            board[AiChooseCell()] = Values.X;
+            if (hasWon(Values.X)) {
+              console.log("You Lose");
+            }
           }
+
+          drawBoard();
         } 
       });
 
