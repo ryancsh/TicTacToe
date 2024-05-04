@@ -17,12 +17,16 @@
       let figureSize = cellSize * 2 / 3;
       let figureOffset = (cellSize - figureSize) / 2;
 
-
       const Values = {
         None: Symbol(""),
         O : Symbol("O"),
         X : Symbol("X"),
       }
+
+      let playerValue = Values.O;
+      let computerValue = Values.X;
+
+
       // board starts from top left, goes to top right, then to row below
       let board = [];
       for (let i = 0; i < 9; i++) {
@@ -146,21 +150,158 @@
         return checkDiagonal(slots1) || checkDiagonal(slots2);
       }
 
-      function AiChooseCell() {
-        return cell(1,1);
-        /*
-        let win = hasWinningMove(Values.X);
-        if (win != null) {
-          return win;
-        } 
+      function AiChooseCell(computerValue, playerValue) {
+        // computer tries to choose a winning move
+        for (let i = 0; i < 9; i++) {
+          let found = false;
+          if (board[i] != Values.None) {
+            continue;
+          }
+          board[i] = computerValue;
+          if (hasWon(computerValue)) {
+            found = true;
+          }
+          board[i] = Values.None;
+          if (found) {
+            return i;
+          }
+        }
+        console.log("No computer winning move");
 
-        let lose = hasWinningMove(Values.O);
-        if (lose != null) {
-          return lose;
+        // computer tries to block player winning move
+        for (let i = 0; i < 9; i++) {
+          let found = false;
+          if (board[i] != Values.None) {
+            continue;
+          }
+          board[i] = playerValue;
+          if (hasWon(playerValue)) {
+            found = true;
+          }
+          board[i] = Values.None;
+          if (found) {
+            console.log(i);
+            return i;
+          }
+        }
+        console.log("No player winning move");
+
+
+        // computer tries to take center if possible
+        if (board[cell(1,1)] == Values.None) {
+          return cell(1,1); // prefer center always
+        }
+        console.log("Can't take center");
+
+        // if player has diagonal, play next to any player corner;
+        let playerHasLeadingDiagonal = board[cell(0,0)] == playerValue && board[cell(2,2)] == playerValue;
+        if (playerHasLeadingDiagonal) {
+          let potentialChoices = [cell(0,1), cell(1,2), cell(1,0), cell(2,1)];
+          for (let i = 0; i < potentialChoices.length; i++) {
+            if (board[potentialChoices[i]] == Values.None) {
+              return potentialChoices[i];
+            }
+          }
+        }
+        let playerHasLeadingAntiDiagonal = board[cell(2,0)] == playerValue && board[cell(0,2)] == playerValue;
+        if (playerHasLeadingAntiDiagonal) {
+          let potentialChoices = [cell(1,0), cell(0,1), cell(2,1), cell(1,2)];
+          for (let i = 0; i < potentialChoices.length; i++) {
+            if (board[potentialChoices[i]] == Values.None) {
+              return potentialChoices[i];
+            }
+          }
         }
 
-        return pickBestMove(Values.X);
-        */
+        // choose any corner opposite a player corner
+        let corners = [cell(0,0), cell(0,2), cell(2,2), cell(2,0)];
+        let computerCorners = [];
+        let playerCorners = [];
+        let freeCorners = [];
+        console.log(computerCorners, playerCorners, freeCorners);
+
+        for (let i = 0; i < corners.length; i++) {
+          let cellIndex = corners[i];
+          let boardValue = board[cellIndex];
+          if (boardValue == computerValue) {
+            computerCorners.push(cellIndex);
+          } else if (boardValue == playerValue) {
+            playerCorners.push(cellIndex);
+          } else if (boardValue == Values.None) {
+            freeCorners.push(cellIndex);
+          }
+        }
+
+        for (let i = 0; i < playerCorners.length; i++) {
+          let oppCorner = oppositeCorner(playerCorners[i]);
+          if (board[oppCorner] == Values.None) {
+            return oppCorner;
+          }
+        }
+
+        // computer tries to take a corner if possible
+        function oppositeCorner(corner) {
+          if (corner == cell(0,0)) {
+            return cell(2,2);
+          } else if (corner == cell(2,2)) {
+            return cell(0,0);
+          } else if (corner == cell(0,2)) {
+            return cell(2,0);
+          } else if (corner == cell(2,0)) {
+            return cell(0,2);
+          } else {
+            throw new Error("Cell index " + corner + " is not a corner.");
+          }
+        }
+
+        for (let i = 0; i < computerCorners.length; i++) {
+          let oppCorner = oppositeCorner(computerCorners[i]);
+          if (board[oppCorner] == Values.None) {
+            return oppCorner;
+          }
+        }
+
+        // pick first available corner otherwise
+        if (freeCorners.length > 0) {
+          return freeCorners[0];
+        }
+
+        // pick any available cell otherwise
+        for (let i = 0; i < board.length; i++) {
+          if (board[i] == Values.None) {
+            return i;
+          }
+        }
+
+        throw new Error("Computer can't find any moves to play");
+      }
+
+      function boardIsFull(board) {
+        for (let i = 0; i < board.length; i++) {
+          if (board[i] == Values.None) {
+            return false;
+          }
+        }
+        return true;
+      }
+
+      function clearBoard(board) {
+        for (let i = 0; i < board.length; i++) {
+          board[i] = Values.None;
+        }
+      }
+
+      function initiateDrawed(board) {
+        clearBoard(board);
+        draws += 1;
+      }
+      function initiatePlayerWin(board) {
+        clearBoard(board);
+        wins += 1;
+      }
+      function initiatePlayerLoss(board) {
+        clearBoard(board);
+        losses += 1;
       }
 
       canvas.addEventListener("click", function(e) {
@@ -173,17 +314,22 @@
         let cellY = Math.trunc(mouseY / cellSize);
         let index = cell(cellX, cellY);
         if (board[index] == Values.None) {
-          board[index] = Values.O;
+          board[index] = playerValue;
+          drawBoard();
 
-          if (hasWon(Values.O)) {
-            console.log("You Win");
+          if (hasWon(playerValue)) {
+            initiatePlayerWin(board);
+          } else if (boardIsFull(board)) {
+            initiateDrawed(board);
           } else {
-            board[AiChooseCell()] = Values.X;
-            if (hasWon(Values.X)) {
-              console.log("You Lose");
+            let AiChoice = AiChooseCell(computerValue, playerValue);
+            board[AiChoice] = computerValue;
+            if (hasWon(computerValue)) {
+              initiatePlayerLoss(board);
+            } else if (boardIsFull(board)) {
+              initiateDrawed(board);
             }
           }
-
           drawBoard();
         } 
       });
