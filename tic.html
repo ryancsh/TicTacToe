@@ -6,6 +6,7 @@
   <body>
     <canvas id="tictactoeCanvas" width="600" height="600" style="border:1px solid #000000;">This would normally display a TicTacToe game but your browser does not support HTML Canvas</canvas>
     <script>
+      // set up
       let width = 600;
       let height = 600;
 
@@ -39,6 +40,10 @@
       let playerValue = Values.O;
       let computerValue = Values.X;
 
+      let wins = 0;
+      let losses = 0;
+      let draws = 0;
+
       function initiateDrawed(board) {
         gameState = GameState.Message;
         message = "Draw. Nobody won."
@@ -58,9 +63,8 @@
         losses += 1;
       }
 
-      // board starts from top left, goes to top right, then to row below
+      // top left -> top right -> 2nd row left -> 2nd row right -> etc.
       let board = [];
-
       function clearBoard(board) {
         for (let i = 0; i < 9; i++) {
           board[i] = Values.None;
@@ -68,23 +72,15 @@
       }
       clearBoard(board);
 
-      let wins = 0;
-      let losses = 0;
-      let draws = 0;
-
-      // TODO remove
-      // initiateDrawed(board);
-
-
-      // clear screen
       var canvas = document.getElementById("tictactoeCanvas");
       var ctx = canvas.getContext("2d");
 
       function drawBoard() {
+        // clear entire draw area
         ctx.fillStyle = "#ffffff";
         ctx.fillRect(0, 0, width, height);
 
-        // draw board
+        // draw lines representing the board
         ctx.lineWidth = Math.ceil(width / 200);
         ctx.strokeStyle = "#00888888";
         ctx.beginPath();
@@ -178,6 +174,7 @@
       }
       drawBoard();
 
+      // turns a pair of coordinates into a single array index
       function cell(x, y) {
         return x + y * 3;
       }
@@ -213,17 +210,17 @@
           return true;
         }
 
-        let slots1 = [0, cell(1,1), cell(2,2)];
-        let slots2 = [cell(2,0), cell(1,1), cell(0,2)];
-        return checkDiagonal(slots1) || checkDiagonal(slots2);
+        let major = [0, cell(1,1), cell(2,2)];
+        let minor = [cell(2,0), cell(1,1), cell(0,2)];
+        return checkDiagonal(major) || checkDiagonal(minor);
       }
 
       function AiChooseCell(computerValue, playerValue) {
-        // computer tries to choose a winning move
-        for (let i = 0; i < 9; i++) {
+        // computer tries to choose a winning move for itself
+        for (let i = 0; i < board.length; i++) {
           let found = false;
           if (board[i] != Values.None) {
-            continue;
+            continue;   // cell occupied
           }
           board[i] = computerValue;
           if (hasWon(computerValue)) {
@@ -236,10 +233,10 @@
         }
 
         // computer tries to block player winning move
-        for (let i = 0; i < 9; i++) {
+        for (let i = 0; i < board.length; i++) {
           let found = false;
           if (board[i] != Values.None) {
-            continue;
+            continue;   // cell occupied
           }
           board[i] = playerValue;
           if (hasWon(playerValue)) {
@@ -253,7 +250,7 @@
 
         // computer tries to take center if possible
         if (board[cell(1,1)] == Values.None) {
-          return cell(1,1); // prefer center always
+          return cell(1,1);
         }
 
         // if player has diagonal, play next to any player corner;
@@ -266,8 +263,8 @@
             }
           }
         }
-        let playerHasLeadingAntiDiagonal = board[cell(2,0)] == playerValue && board[cell(0,2)] == playerValue;
-        if (playerHasLeadingAntiDiagonal) {
+        let playerHasAntiDiagonal = board[cell(2,0)] == playerValue && board[cell(0,2)] == playerValue;
+        if (playerHasAntiDiagonal) {
           let potentialChoices = [cell(1,0), cell(0,1), cell(2,1), cell(1,2)];
           for (let i = 0; i < potentialChoices.length; i++) {
             if (board[potentialChoices[i]] == Values.None) {
@@ -276,32 +273,7 @@
           }
         }
 
-        // choose any corner opposite a player corner
-        let corners = [cell(0,0), cell(0,2), cell(2,2), cell(2,0)];
-        let computerCorners = [];
-        let playerCorners = [];
-        let freeCorners = [];
-
-        for (let i = 0; i < corners.length; i++) {
-          let cellIndex = corners[i];
-          let boardValue = board[cellIndex];
-          if (boardValue == computerValue) {
-            computerCorners.push(cellIndex);
-          } else if (boardValue == playerValue) {
-            playerCorners.push(cellIndex);
-          } else if (boardValue == Values.None) {
-            freeCorners.push(cellIndex);
-          }
-        }
-
-        for (let i = 0; i < playerCorners.length; i++) {
-          let oppCorner = oppositeCorner(playerCorners[i]);
-          if (board[oppCorner] == Values.None) {
-            return oppCorner;
-          }
-        }
-
-        // computer tries to take a corner if possible
+        // set up to evaluate corners
         function oppositeCorner(corner) {
           if (corner == cell(0,0)) {
             return cell(2,2);
@@ -316,6 +288,33 @@
           }
         }
 
+        let corners = [cell(0,0), cell(0,2), cell(2,2), cell(2,0)];
+        let computerCorners = [];
+        let playerCorners = [];
+        let freeCorners = [];
+
+        // determine corner status
+        for (let i = 0; i < corners.length; i++) {
+          let cellIndex = corners[i];
+          let boardValue = board[cellIndex];
+          if (boardValue == computerValue) {
+            computerCorners.push(cellIndex);
+          } else if (boardValue == playerValue) {
+            playerCorners.push(cellIndex);
+          } else if (boardValue == Values.None) {
+            freeCorners.push(cellIndex);
+          }
+        }
+
+        // if player has a corner, take opposite one
+        for (let i = 0; i < playerCorners.length; i++) {
+          let oppCorner = oppositeCorner(playerCorners[i]);
+          if (board[oppCorner] == Values.None) {
+            return oppCorner;
+          }
+        }
+
+        // computer takes corner opposite opposite one it already has
         for (let i = 0; i < computerCorners.length; i++) {
           let oppCorner = oppositeCorner(computerCorners[i]);
           if (board[oppCorner] == Values.None) {
@@ -349,16 +348,21 @@
 
       canvas.addEventListener("click", function(e) {
         if (gameState == GameState.Normal) {
+          // make mouse position relative to board
           let mouseX = e.offsetX - boardOffsetX;
           let mouseY = e.offsetY - boardOffsetY;
+
+          // if mouse outside board, do nothing
           if (mouseX < 0 || mouseY < 0 || mouseX >= boardSize || mouseY >= boardSize) {
             return;
           }
 
+          // determine which cell mouse is over
           let cellX = Math.trunc(mouseX / cellSize);
           let cellY = Math.trunc(mouseY / cellSize);
           let index = cell(cellX, cellY);
-          if (board[index] == Values.None) {
+
+          if (board[index] == Values.None) {  // only if cell empty
             board[index] = playerValue;
             drawBoard();
 
@@ -381,14 +385,14 @@
           let mouseX = e.offsetX;
           let mouseY = e.offsetY;
 
-          if (mouseX <= buttonX + buttonWidth && mouseX >= buttonX && mouseY <= buttonY + buttonHeight && mouseY >= buttonY) {
+          let mouseOverButton = mouseX <= buttonX + buttonWidth && mouseX >= buttonX && mouseY <= buttonY + buttonHeight && mouseY >= buttonY;
+          if (mouseOverButton) {
             clearBoard(board);
             gameState = GameState.Normal;
             drawBoard();
           }
         }
       });
-
     </script>
   </body>
 </html>
