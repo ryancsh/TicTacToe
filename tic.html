@@ -17,24 +17,64 @@
       let figureSize = cellSize * 2 / 3;
       let figureOffset = (cellSize - figureSize) / 2;
 
+      let buttonX = width * 4 / 10;
+      let buttonY = height * 2 / 3;
+      let buttonWidth = width * 2 / 10;
+      let buttonHeight = height / 10;
+
+      const GameState = {
+        Normal: Symbol("normal"),
+        Message : Symbol("Message"),
+      }
+
       const Values = {
         None: Symbol(""),
         O : Symbol("O"),
         X : Symbol("X"),
       }
 
+      let gameState = GameState.Normal;
+      let message = "";
+      let messageStyle = "";
       let playerValue = Values.O;
       let computerValue = Values.X;
 
+      function initiateDrawed(board) {
+        gameState = GameState.Message;
+        message = "Draw. Nobody won."
+        messageStyle = "#0000FFC0";
+        draws += 1;
+      }
+      function initiatePlayerWin(board) {
+        gameState = GameState.Message;
+        message = "You Win. Congratulations!"
+        messageStyle = "#00FF00C0";
+        wins += 1;
+      }
+      function initiatePlayerLoss(board) {
+        gameState = GameState.Message;
+        message = "You Lose. Try again."
+        messageStyle = "#FF0000C0";
+        losses += 1;
+      }
 
       // board starts from top left, goes to top right, then to row below
       let board = [];
-      for (let i = 0; i < 9; i++) {
-        board[i] = Values.None;
+
+      function clearBoard(board) {
+        for (let i = 0; i < 9; i++) {
+          board[i] = Values.None;
+        }
       }
+      clearBoard(board);
+
       let wins = 0;
       let losses = 0;
       let draws = 0;
+
+      // TODO remove
+      // initiateDrawed(board);
+
 
       // clear screen
       var canvas = document.getElementById("tictactoeCanvas");
@@ -79,6 +119,7 @@
           ctx.stroke();
         }
 
+        // draw the O's and X's
         let thickness = Math.ceil(width / 100);
         for (let i = 0; i < 9; i++) {
           let row = Math.trunc(i / 3);
@@ -98,7 +139,7 @@
         let draw_message = "Draws:";
         let lose_message = "Losses:";
         ctx.font = "30px sans-serif";
-        ctx.fillStyle = "#00888888";
+        ctx.fillStyle = "#008888C0";
         ctx.textAlign = "start";
         ctx.fillText(win_message, boardOffsetX, boardOffsetY / 4, 200);
         ctx.fillText(draw_message, boardOffsetX, boardOffsetY / 2, 200);
@@ -107,6 +148,33 @@
         ctx.fillText("" + wins, width - boardOffsetX, boardOffsetY / 4, width - boardOffsetX * 2 - 200);
         ctx.fillText("" + draws, width - boardOffsetX, boardOffsetY / 2, width - boardOffsetX * 2 - 200);
         ctx.fillText("" + losses, width - boardOffsetX, boardOffsetY * 3 / 4, width - boardOffsetX * 2 - 200);
+
+        // show message overlay
+        if (gameState == GameState.Message) {
+          ctx.fillStyle = "#0000009F"
+          ctx.fillRect(width / 10 + width / 100, height / 4 + height / 100, width * 8 / 10, height * 3 / 5);
+
+          // UI background
+          ctx.fillStyle = "#888888BF"
+          ctx.fillRect(width / 10, height / 4, width * 8 / 10, height * 3 / 5);
+
+          // message
+          ctx.textAlign = "center";
+          ctx.fillStyle = messageStyle
+          ctx.fillText(message, width / 2, height / 2, width * 6 / 10);
+
+          // button shadow
+          ctx.fillStyle = "#0000009F"
+          ctx.fillRect(buttonX + width / 100, buttonY + height / 100, buttonWidth, buttonHeight);
+
+          // button background
+          ctx.fillStyle = "#880088FF"
+          ctx.fillRect(buttonX, buttonY, buttonWidth, buttonHeight);
+
+          // button text
+          ctx.fillStyle = "#000000DF";
+          ctx.fillText("OK", width / 2, height * 20 / 27, width * 6 / 10);
+        }
       }
       drawBoard();
 
@@ -166,7 +234,6 @@
             return i;
           }
         }
-        console.log("No computer winning move");
 
         // computer tries to block player winning move
         for (let i = 0; i < 9; i++) {
@@ -180,18 +247,14 @@
           }
           board[i] = Values.None;
           if (found) {
-            console.log(i);
             return i;
           }
         }
-        console.log("No player winning move");
-
 
         // computer tries to take center if possible
         if (board[cell(1,1)] == Values.None) {
           return cell(1,1); // prefer center always
         }
-        console.log("Can't take center");
 
         // if player has diagonal, play next to any player corner;
         let playerHasLeadingDiagonal = board[cell(0,0)] == playerValue && board[cell(2,2)] == playerValue;
@@ -218,7 +281,6 @@
         let computerCorners = [];
         let playerCorners = [];
         let freeCorners = [];
-        console.log(computerCorners, playerCorners, freeCorners);
 
         for (let i = 0; i < corners.length; i++) {
           let cellIndex = corners[i];
@@ -285,53 +347,46 @@
         return true;
       }
 
-      function clearBoard(board) {
-        for (let i = 0; i < board.length; i++) {
-          board[i] = Values.None;
-        }
-      }
-
-      function initiateDrawed(board) {
-        clearBoard(board);
-        draws += 1;
-      }
-      function initiatePlayerWin(board) {
-        clearBoard(board);
-        wins += 1;
-      }
-      function initiatePlayerLoss(board) {
-        clearBoard(board);
-        losses += 1;
-      }
-
       canvas.addEventListener("click", function(e) {
-        let mouseX = e.offsetX - boardOffsetX;
-        let mouseY = e.offsetY - boardOffsetY;
-        if (mouseX < 0 || mouseY < 0 || mouseX >= boardSize || mouseY >= boardSize) {
-          return;
-        }
-        let cellX = Math.trunc(mouseX / cellSize);
-        let cellY = Math.trunc(mouseY / cellSize);
-        let index = cell(cellX, cellY);
-        if (board[index] == Values.None) {
-          board[index] = playerValue;
-          drawBoard();
+        if (gameState == GameState.Normal) {
+          let mouseX = e.offsetX - boardOffsetX;
+          let mouseY = e.offsetY - boardOffsetY;
+          if (mouseX < 0 || mouseY < 0 || mouseX >= boardSize || mouseY >= boardSize) {
+            return;
+          }
 
-          if (hasWon(playerValue)) {
-            initiatePlayerWin(board);
-          } else if (boardIsFull(board)) {
-            initiateDrawed(board);
-          } else {
-            let AiChoice = AiChooseCell(computerValue, playerValue);
-            board[AiChoice] = computerValue;
-            if (hasWon(computerValue)) {
-              initiatePlayerLoss(board);
+          let cellX = Math.trunc(mouseX / cellSize);
+          let cellY = Math.trunc(mouseY / cellSize);
+          let index = cell(cellX, cellY);
+          if (board[index] == Values.None) {
+            board[index] = playerValue;
+            drawBoard();
+
+            if (hasWon(playerValue)) {
+              initiatePlayerWin(board);
             } else if (boardIsFull(board)) {
               initiateDrawed(board);
+            } else {
+              let AiChoice = AiChooseCell(computerValue, playerValue);
+              board[AiChoice] = computerValue;
+              if (hasWon(computerValue)) {
+                initiatePlayerLoss(board);
+              } else if (boardIsFull(board)) {
+                initiateDrawed(board);
+              }
             }
+            drawBoard();
+          } 
+        } else if (gameState == GameState.Message) {
+          let mouseX = e.offsetX;
+          let mouseY = e.offsetY;
+
+          if (mouseX <= buttonX + buttonWidth && mouseX >= buttonX && mouseY <= buttonY + buttonHeight && mouseY >= buttonY) {
+            clearBoard(board);
+            gameState = GameState.Normal;
+            drawBoard();
           }
-          drawBoard();
-        } 
+        }
       });
 
     </script>
